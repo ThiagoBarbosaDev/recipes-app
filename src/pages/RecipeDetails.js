@@ -8,10 +8,15 @@ import RecommendationCard from '../components/RecommendationCard';
 import { addToLocalStorage, createLocalStorage, getLocalStorage,
   removeFavoriteRecipe } from '../helpers/localStorage';
 import styles from './RecipeDetails.module.css';
+import { multipleFetchData } from '../services/fetchRecipes';
+import { handleRecipeEndpoint, handleRecommendationEndpoint } from '../helpers/endpoints';
+import { handleRecipeDataStructure, handleRecommendationDataStructure } from '../helpers/dataStructures';
 
 const RecipeDetails = () => {
   const { url, params: { id } } = useRouteMatch();
   const { push, location: { pathname } } = useHistory();
+  const teste = useHistory();
+  console.log(teste);
 
   const [recipeData, setRecipeData] = useState([]);
   const [recommendationData, setRecommendationData] = useState([]);
@@ -21,8 +26,15 @@ const RecipeDetails = () => {
   const [isRecipeAlreadyDone, setIsRecipeAlreadyDone] = useState(false);
   const [isRecipeInProgress, setIsRecipeInProgress] = useState(false);
 
-  const { strMeal, strDrink, strMealThumb, strDrinkThumb, strCategory: category,
-    strInstructions: instructions, strYoutube: youtubeUrl, strAlcoholic,
+  const { 
+    strMeal,
+    strDrink,
+    strMealThumb,
+    strDrinkThumb,
+    strCategory: category,
+    strInstructions: instructions,
+    strYoutube: youtubeUrl,
+    strAlcoholic,
     strArea } = recipeData;
 
   const isMeal = url.includes('food');
@@ -34,32 +46,20 @@ const RecipeDetails = () => {
   const nationality = strArea || '';
 
   useEffect(() => {
-    const fetchRecipeData = async () => {
-      const foodEndpoint = `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`;
-      const drinkEndpoint = `https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${id}`;
-      const endpoint = isMeal ? foodEndpoint : drinkEndpoint;
-      const fetchData = await fetch(endpoint);
-      const response = await fetchData.json();
-      const object = response?.meals || response?.drinks;
-
-      setRecipeData(object[0]);
-    };
-    fetchRecipeData();
-  }, []);
-
-  useEffect(() => {
-    const fetchRecommendationData = async () => {
-      const foodEndpoint = 'https://www.thecocktaildb.com/api/json/v1/1/search.php?s=';
-      const drinkEndpoint = 'https://www.themealdb.com/api/json/v1/1/search.php?s=';
-      const endpoint = isMeal ? foodEndpoint : drinkEndpoint;
-      const fetchData = await fetch(endpoint);
-      const response = await fetchData.json();
-      const flattenedResponse = response?.meals || response?.drinks;
-      const maxRecipes = 6;
-      const filteredResponse = flattenedResponse.slice(0, maxRecipes);
-      setRecommendationData(filteredResponse);
-    };
-    fetchRecommendationData();
+    multipleFetchData(
+      [
+        {
+          url: handleRecipeEndpoint(id, isMeal),
+          dataHandler: handleRecipeDataStructure,
+          setter: setRecipeData,
+        },
+        {
+          url: handleRecommendationEndpoint(isMeal),
+          dataHandler: handleRecommendationDataStructure,
+          setter: setRecommendationData,
+        },
+      ]
+    )
   }, []);
 
   useEffect(() => {
@@ -70,9 +70,7 @@ const RecipeDetails = () => {
       if (isAlreadyFavorite) { setIsFavorite(true); }
     };
     isFavoriteOnLoad();
-  }, []);
 
-  useEffect(() => {
     const isAlreadyDoneOnLoad = () => {
       createLocalStorage('doneRecipes');
       const localStorageData = getLocalStorage('doneRecipes');
@@ -80,14 +78,10 @@ const RecipeDetails = () => {
       if (isAlreadyDone) { setIsRecipeAlreadyDone(true); }
     };
     isAlreadyDoneOnLoad();
-  }, []);
 
-  useEffect(() => {
     const isAlreadyInProgressOnLoad = () => {
       createLocalStorage('inProgressRecipes', {});
       const localStorageData = getLocalStorage('inProgressRecipes');
-      console.log(localStorageData);
-      console.log(localStorageData?.meals || localStorageData?.cocktails);
       if (localStorageData?.meals || localStorageData?.cocktails) {
         const idList = isMeal
           ? Object.keys(localStorageData?.meals)

@@ -10,6 +10,11 @@ import { createLocalStorage, getLocalStorage,
 import doneDrink from './mocks/doneDrink';
 import inProgressMock from './mocks/inProgressMock';
 
+beforeEach(() => {
+  jest.spyOn(global, 'fetch')
+    .mockImplementationOnce(fetch);
+});
+
 const favoriteButtonStr = 'favorite-btn';
 
 describe('Testa o componente Recipes', () => {
@@ -28,12 +33,13 @@ describe('Testa o componente Recipes', () => {
     userEvent.click(favoriteButtonAfterClick);
   });
   it('Testa se a página de DoneRecipes renderiza corretamente', async () => {
-    localStorage.removeItem('doneRecipes');
+    // localStorage.removeItem('doneRecipes');
     createLocalStorage('inProgressRecipes', { meals: {}, cocktails: {} });
     setLocalStorage('inProgressRecipes', inProgressMock);
 
-    const { history } = renderWithRouterAndRedux(<App />);
-    history.push('/drinks/15997');
+    const { history } = renderWithRouterAndRedux(<App />, undefined, '/donerecipes');
+    // history.push('/drinks/15997');
+    screen.logTestingPlaygroundURL();
     await waitForElementToBeRemoved(() => screen.getByText(/Loading.../i));
     console.log(getLocalStorage('inProgressRecipe'));
 
