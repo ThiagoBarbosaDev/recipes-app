@@ -11,6 +11,7 @@ import styles from './RecipeDetails.module.css';
 import { multipleFetchData } from '../services/fetchRecipes';
 import { handleRecipeEndpoint, handleRecommendationEndpoint } from '../helpers/endpoints';
 import { handleRecipeDataStructure, handleRecommendationDataStructure } from '../helpers/dataStructures';
+import { isAlreadyDoneOnLoad, isAlreadyInProgressOnLoad, isFavoriteOnLoad } from '../helpers/recipeDetailsHelpers';
 
 const RecipeDetails = () => {
   const { url, params: { id } } = useRouteMatch();
@@ -45,6 +46,7 @@ const RecipeDetails = () => {
   const alcoholicOrNot = strAlcoholic || '';
   const nationality = strArea || '';
 
+  // onMount Functions
   useEffect(() => {
     multipleFetchData(
       [
@@ -58,40 +60,15 @@ const RecipeDetails = () => {
           dataHandler: handleRecommendationDataStructure,
           setter: setRecommendationData,
         },
-      ]
-    )
+      ],
+    );
+
+    isFavoriteOnLoad(setIsFavorite);
+    isAlreadyDoneOnLoad(setIsRecipeAlreadyDone);
+    isAlreadyInProgressOnLoad(setIsRecipeInProgress, isMeal, id);
   }, []);
 
-  useEffect(() => {
-    const isFavoriteOnLoad = () => {
-      createLocalStorage('favoriteRecipes');
-      const localStorageData = getLocalStorage('favoriteRecipes');
-      const isAlreadyFavorite = localStorageData.some((item) => item.id === id);
-      if (isAlreadyFavorite) { setIsFavorite(true); }
-    };
-    isFavoriteOnLoad();
-
-    const isAlreadyDoneOnLoad = () => {
-      createLocalStorage('doneRecipes');
-      const localStorageData = getLocalStorage('doneRecipes');
-      const isAlreadyDone = localStorageData.some((item) => item.id === id);
-      if (isAlreadyDone) { setIsRecipeAlreadyDone(true); }
-    };
-    isAlreadyDoneOnLoad();
-
-    const isAlreadyInProgressOnLoad = () => {
-      createLocalStorage('inProgressRecipes', {});
-      const localStorageData = getLocalStorage('inProgressRecipes');
-      if (localStorageData?.meals || localStorageData?.cocktails) {
-        const idList = isMeal
-          ? Object.keys(localStorageData?.meals)
-          : Object.keys(localStorageData?.cocktails);
-        const isAlreadyInProgress = idList.some((item) => item.includes(id));
-        if (isAlreadyInProgress) { setIsRecipeInProgress(true); }
-      }
-    };
-    isAlreadyInProgressOnLoad();
-  }, []);
+  // render Functions
 
   const renderIngredients = () => {
     const ingredients = Object.keys(recipeData)
@@ -128,6 +105,8 @@ const RecipeDetails = () => {
     );
   });
 
+  // onClick Functions
+
   const onShareClick = () => {
     clipboardCopy(`${window.origin}${url}`);
     setIsCopied(true);
@@ -145,7 +124,7 @@ const RecipeDetails = () => {
     }
   };
 
-  const onStartRecipe = () => {
+  const onStartRecipeClick = () => {
     const pathToPush = `${pathname}/in-progress`;
     push(pathToPush);
   };
@@ -166,7 +145,7 @@ const RecipeDetails = () => {
         type="button"
         data-testid="share-btn"
         src={ shareIcon }
-        onClick={ () => onShareClick() }
+        onClick={ onShareClick }
       >
         <img src={ shareIcon } alt="share-icon" />
       </button>
@@ -174,7 +153,7 @@ const RecipeDetails = () => {
         type="button"
         data-testid="favorite-btn"
         src={ isFavorite ? blackHeartIcon : whiteHeartIcon }
-        onClick={ () => onFavoriteClick() }
+        onClick={ onFavoriteClick }
       >
         <img src={ isFavorite ? blackHeartIcon : whiteHeartIcon } alt="share-icon" />
       </button>
@@ -210,7 +189,7 @@ const RecipeDetails = () => {
           className={ styles['start-button'] }
           type="button"
           data-testid="start-recipe-btn"
-          onClick={ () => onStartRecipe() }
+          onClick={ onStartRecipeClick }
         >
           { isRecipeInProgress ? 'Continue Recipe' : 'Start Recipe' }
         </button>
